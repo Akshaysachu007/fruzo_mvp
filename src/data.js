@@ -278,8 +278,14 @@ export function makeInitial() {
     coupons: [],
     messages: [],
     referrals: [], // { id, referrerCustomerId, referredCustomerId, status: 'pending'|'rewarded', createdAt, qualifyingPurchaseId, rewardedAt }
+    feedbacks: [], // { id, customerId, rating, comment, date, rewardCredited }
     activeCustomer: "c1",
-    restaurant: { name: "Fruzo", tagline: "We blend happiness", earnRate: 10 },
+    restaurant: {
+      name: "Fruzo",
+      tagline: "We blend happiness",
+      earnRate: 10,
+      googleReviewUrl: "", // Set your Google review URL here
+    },
     version: 1,
   };
 }
