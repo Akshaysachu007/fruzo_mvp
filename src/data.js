@@ -153,13 +153,18 @@ export function makeInitial() {
     available: true,
     trending: [0, 1, 3, 6, 9].includes(i),
   }));
-  const customers = names.map((name, i) => ({
-    id: `c${i + 1}`,
-    name,
-    phone: `98765${String(43210 + i).padStart(5, "0")}`,
-    joined: ago(110 - (i % 25)),
-    consent: i % 5 !== 0,
-  }));
+  const customers = names.map((name, i) => {
+    const id = `c${i + 1}`;
+    return {
+      id,
+      name,
+      phone: `98765${String(43210 + i).padStart(5, "0")}`,
+      joined: ago(110 - (i % 25)),
+      consent: i % 5 !== 0,
+      referralCode: generateReferralCode(id),
+      referredBy: null, // referring customer ID, or null
+    };
+  });
   const purchases = [];
   const points = [];
   let n = 0;
@@ -272,6 +277,7 @@ export function makeInitial() {
     redemptions: [],
     coupons: [],
     messages: [],
+    referrals: [], // { id, referrerCustomerId, referredCustomerId, status: 'pending'|'rewarded', createdAt, qualifyingPurchaseId, rewardedAt }
     activeCustomer: "c1",
     restaurant: { name: "Fruzo", tagline: "We blend happiness", earnRate: 10 },
     version: 1,
@@ -300,3 +306,18 @@ export const inactiveDays = (date) =>
   date ? Math.floor((Date.now() - new Date(date).getTime()) / 86400000) : 999;
 export const newId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+/**
+ * Generate a stable, opaque referral code from a customer ID.
+ * Uses a simple deterministic transform so the same ID always produces the
+ * same code and the code does not expose the raw customer ID directly.
+ * The result is 8 uppercase alphanumeric characters.
+ */
+export const generateReferralCode = (customerId) => {
+  // XOR-fold the char codes of the id string, then base-36 encode with padding.
+  let h = 0x811c9dc5; // FNV-1a 32-bit offset basis
+  for (let i = 0; i < customerId.length; i++) {
+    h ^= customerId.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0; // FNV prime
+  }
+  return h.toString(36).toUpperCase().padStart(7, "0").slice(0, 7);
+};

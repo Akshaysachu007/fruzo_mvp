@@ -55,15 +55,29 @@ import {
   customerStats,
   inactiveDays,
   newId,
+  generateReferralCode,
 } from "./data";
 const STORAGE = "fruzo-demo-mvp-v1";
+// Pending referral attribution: stored in sessionStorage when a ?ref= URL is opened.
+const PENDING_REF_KEY = "fruzo-pending-ref";
 function load() {
   try {
-    const value = JSON.parse(localStorage.getItem(STORAGE));
-    if (value?.version === 1 && value.customers?.length && value.menus?.length)
-      return value;
-  } catch {}
-  return makeInitial();
+    const raw = localStorage.getItem(STORAGE);
+    if (!raw) return makeInitial();
+    const value = JSON.parse(raw);
+    if (!value || value.version !== 1 || !value.customers?.length || !value.menus?.length)
+      return makeInitial();
+    // --- Safe forward migration for referral feature ---
+    if (!Array.isArray(value.referrals)) value.referrals = [];
+    value.customers = value.customers.map((c) => ({
+      referralCode: generateReferralCode(c.id),
+      referredBy: null,
+      ...c, // existing fields win, so saved referredBy is preserved
+    }));
+    return value;
+  } catch {
+    return makeInitial();
+  }
 }
 const customerNav = [
   ["home", "Home", Home],
@@ -100,6 +114,25 @@ function App() {
       console.warn("Storage full");
     }
   }, [db]);
+  // Read ?ref=CODE from URL on first mount and store pending referral attribution.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get("ref");
+    if (!refCode) return;
+    const referrer = db.customers.find(
+      (c) => (c.referralCode || "").toUpperCase() === refCode.toUpperCase()
+    );
+    if (!referrer) return; // unknown code - ignore
+    const existing = sessionStorage.getItem(PENDING_REF_KEY);
+    if (!existing) {
+      sessionStorage.setItem(PENDING_REF_KEY, referrer.id);
+    }
+    // Remove ?ref= from the URL bar without a page reload
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("ref");
+    window.history.replaceState({}, "", clean.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 3500);
@@ -157,6 +190,45 @@ function App() {
         text: `Thanks for visiting Fruzo! You earned ${base} points on your ${money(a)} purchase.`,
         status: "Demo notification",
       });
+      // --- Referral reward (atomic, same state update) ---
+      const REFERRAL_BONUS = 25;
+      const referredCustomer = s.customers.find((c) => c.id === customerId);
+      const referrerId = referredCustomer?.referredBy || null;
+      if (referrerId && referrerId !== customerId) {
+        const existingReferral = (s.referrals || []).find(
+          (r) => r.referredCustomerId === customerId
+        );
+        if (existingReferral && existingReferral.status === "pending") {
+          // Count previous purchases (excluding this new one) to confirm first purchase.
+          const previousPurchases = s.purchases.filter(
+            (p) => p.customerId === customerId && p.id !== id
+          );
+          if (previousPurchases.length === 0) {
+            existingReferral.status = "rewarded";
+            existingReferral.qualifyingPurchaseId = id;
+            existingReferral.rewardedAt = d;
+            s.points.unshift({
+              id: newId(),
+              customerId: referrerId,
+              amount: REFERRAL_BONUS,
+              type: "referral",
+              date: d,
+              detail: "Referral bonus - friend joined Fruzo",
+              referralId: existingReferral.id,
+            });
+            s.messages.unshift({
+              id: newId(),
+              customerId: referrerId,
+              date: d,
+              type: "referral",
+              text:
+                "Great news! Someone you referred just made their first purchase at Fruzo. " +
+                "You earned " + REFERRAL_BONUS + " bonus points - thank you for spreading the word!",
+              status: "Demo notification",
+            });
+          }
+        }
+      }
     });
     notify(`${base} points credited successfully!`);
     return true;
@@ -801,6 +873,12 @@ function App() {
                       and see their real demo balances.
                     </p>
                   </div>
+                  <ReferralSection
+                    db={db}
+                    active={active}
+                    modify={modify}
+                    notify={notify}
+                  />
                 </>
               )}
               {page === "offers" && (
@@ -894,7 +972,9 @@ function App() {
                                   ? "Points earned"
                                   : m.type === "reward"
                                     ? "Reward redeemed"
-                                    : "Fruzo special offer"}
+                                    : m.type === "referral"
+                                      ? "Referral bonus"
+                                      : "Fruzo special offer"}
                               </strong>
                               <small className="notification-detail">
                                 {m.text}
@@ -2441,4 +2521,219 @@ function SettingsForm({ db, modify, reset, notify }) {
     </>
   );
 }
+
+const REFERRAL_BONUS_PTS = 25;
+
+/**
+ * ReferralSection - "Refer a Friend" on the Customer Profile page.
+ * Reuses existing CSS classes (selector-card, outline-mini, transaction-list,
+ * transaction, muted, positive, grow) without new design tokens.
+ */
+function ReferralSection({ db, active, modify, notify }) {
+  const referralCode = active.referralCode || "";
+  const referralUrl = referralCode
+    ? window.location.origin +
+      window.location.pathname +
+      "?ref=" +
+      referralCode
+    : "";
+
+  const myReferrals = (db.referrals || []).filter(
+    (r) => r.referrerCustomerId === active.id
+  );
+  const rewardedReferrals = myReferrals.filter((r) => r.status === "rewarded");
+  const pendingReferrals = myReferrals.filter((r) => r.status === "pending");
+
+  const [simCustomerId, setSimCustomerId] = React.useState("");
+  const eligible = db.customers.filter(
+    (c) =>
+      c.id !== active.id &&
+      !c.referredBy &&
+      !(db.referrals || []).some((r) => r.referredCustomerId === c.id)
+  );
+
+  function handleSimulateReferral() {
+    if (!simCustomerId) { notify("Pick a customer to simulate the referral"); return; }
+    if (simCustomerId === active.id) { notify("Self-referral is not allowed"); return; }
+    const target = db.customers.find((c) => c.id === simCustomerId);
+    if (!target) return;
+    if (target.referredBy) { notify("That customer already has a referrer"); return; }
+    if ((db.referrals || []).some((r) => r.referredCustomerId === simCustomerId)) {
+      notify("A referral record already exists for that customer");
+      return;
+    }
+    const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    modify((s) => {
+      const cust = s.customers.find((c) => c.id === simCustomerId);
+      if (!cust || cust.referredBy) return;
+      cust.referredBy = active.id;
+      if (!Array.isArray(s.referrals)) s.referrals = [];
+      s.referrals.push({
+        id: rid,
+        referrerCustomerId: active.id,
+        referredCustomerId: simCustomerId,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        qualifyingPurchaseId: null,
+        rewardPoints: REFERRAL_BONUS_PTS,
+        rewardedAt: null,
+      });
+    });
+    setSimCustomerId("");
+    notify(
+      "Referral attributed! Record " +
+        target.name.split(" ")[0] +
+        "'s first purchase in Admin to earn " +
+        REFERRAL_BONUS_PTS +
+        " pts."
+    );
+  }
+
+  function copyLink() {
+    if (!referralUrl) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(referralUrl)
+        .then(() => notify("Referral link copied to clipboard!"))
+        .catch(() => {
+          const el = document.getElementById("referral-link-input");
+          if (el) el.select();
+          notify("Could not auto-copy - select and copy the link manually.");
+        });
+    } else {
+      const el = document.getElementById("referral-link-input");
+      if (el) el.select();
+      notify("Copy the link from the field above.");
+    }
+  }
+
+  function shareLink() {
+    if (!referralUrl) return;
+    const shareData = {
+      title: "Join me at Fruzo!",
+      text:
+        "Hey! Join Fruzo and enjoy fresh blends and loyalty rewards. I will earn " +
+        REFERRAL_BONUS_PTS +
+        " bonus points when you make your first purchase. Use my invite link:",
+      url: referralUrl,
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch((e) => {
+        if (e && e.name !== "AbortError") copyLink();
+      });
+    } else {
+      copyLink();
+    }
+  }
+
+  return (
+    <div className="selector-card" style={{ marginTop: 20 }}>
+      <label>REFER A FRIEND</label>
+      <p style={{ fontSize: 13, margin: "10px 0 14px", color: "#77776e" }}>
+        Invite a friend to Fruzo. When they complete their first qualifying
+        purchase, you will earn{" "}
+        <strong>{REFERRAL_BONUS_PTS} loyalty points</strong>.
+      </p>
+
+      <div style={{ marginBottom: 12 }}>
+        <input
+          id="referral-link-input"
+          readOnly
+          value={referralUrl}
+          style={{
+            width: "100%",
+            fontSize: 11,
+            padding: "10px 12px",
+            border: "1px solid #e7e6df",
+            borderRadius: 9,
+            background: "#fafaf7",
+            color: "#5a5a52",
+            cursor: "text",
+            boxSizing: "border-box",
+          }}
+          onClick={(e) => e.target.select()}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+        <button className="outline-mini" onClick={copyLink}>
+          <Copy size={14} /> Copy link
+        </button>
+        <button className="outline-mini" onClick={shareLink}>
+          <Send size={14} /> Share
+        </button>
+      </div>
+
+      {myReferrals.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#a68e29", marginBottom: 8 }}>
+            YOUR REFERRALS
+          </div>
+          <div className="transaction-list">
+            {myReferrals.map((r) => {
+              const refCust = db.customers.find((c) => c.id === r.referredCustomerId);
+              return (
+                <div className="transaction" key={r.id}>
+                  <span className="transaction-icon">
+                    {r.status === "rewarded" ? <CheckCircle2 size={18} /> : <Clock size={18} />}
+                  </span>
+                  <span className="grow">
+                    <strong style={{ fontSize: 13 }}>{refCust ? refCust.name : "Friend"}</strong>
+                    <small>
+                      {r.status === "rewarded"
+                        ? "Rewarded - " + dateFmt(r.rewardedAt)
+                        : "Pending first purchase"}
+                    </small>
+                  </span>
+                  <strong
+                    className={r.status === "rewarded" ? "positive" : "muted"}
+                    style={{ fontSize: 12 }}
+                  >
+                    {r.status === "rewarded" ? "+" + r.rewardPoints + " pts" : "Pending"}
+                  </strong>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 12 }}>
+            <span className="muted">{rewardedReferrals.length} rewarded</span>
+            <span className="muted">{pendingReferrals.length} pending</span>
+          </div>
+        </div>
+      )}
+
+      {eligible.length > 0 && (
+        <div style={{ marginTop: 16, borderTop: "1px dashed #e0dac8", paddingTop: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#a68e29", marginBottom: 8 }}>
+            DEMO: SIMULATE A REFERRAL SIGN-UP
+          </div>
+          <p style={{ fontSize: 11, color: "#8b8b83", margin: "0 0 10px" }}>
+            Normally a friend opens your link and registers. Pick any unattributed customer
+            to simulate them signing up via your link. Then record their first purchase in
+            Admin to see the bonus credited.
+          </p>
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              value={simCustomerId}
+              onChange={(e) => setSimCustomerId(e.target.value)}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <option value="">-- Choose a customer --</option>
+              {eligible.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              className="outline-mini"
+              onClick={handleSimulateReferral}
+              disabled={!simCustomerId}
+            >
+              <UserRound size={14} /> Simulate
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default App;
