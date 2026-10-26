@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import {
   Home,
   UtensilsCrossed,
@@ -47,6 +48,13 @@ import {
   AlertTriangle,
   BarChart3,
   Copy,
+  Share2,
+  MessageSquare,
+  Link2,
+  UserPlus,
+  MapPin,
+  Navigation,
+  ThumbsUp,
 } from "lucide-react";
 import {
   makeInitial,
@@ -57,9 +65,11 @@ import {
   newId,
   generateReferralCode,
 } from "./data";
+
 const STORAGE = "fruzo-demo-mvp-v1";
 // Pending referral attribution: stored in sessionStorage when a ?ref= URL is opened.
 const PENDING_REF_KEY = "fruzo-pending-ref";
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE);
@@ -69,6 +79,13 @@ function load() {
       return makeInitial();
     // --- Safe forward migration for referral feature ---
     if (!Array.isArray(value.referrals)) value.referrals = [];
+    if (!Array.isArray(value.feedbacks)) value.feedbacks = [];
+    if (!value.restaurant.googleReviewUrl && value.restaurant.googleReviewUrl !== "") {
+      value.restaurant.googleReviewUrl = "";
+    }
+    if (!value.restaurant.googleMapsUrl && value.restaurant.googleMapsUrl !== "") {
+      value.restaurant.googleMapsUrl = "";
+    }
     value.customers = value.customers.map((c) => ({
       referralCode: generateReferralCode(c.id),
       referredBy: null,
@@ -79,6 +96,7 @@ function load() {
     return makeInitial();
   }
 }
+
 const customerNav = [
   ["home", "Home", Home],
   ["menu", "Menu", UtensilsCrossed],
@@ -86,6 +104,7 @@ const customerNav = [
   ["wallet", "Points", Wallet],
   ["profile", "Profile", UserRound],
 ];
+
 const adminNav = [
   ["dashboard", "Overview", LayoutDashboard],
   ["customers", "Customers", Users],
@@ -96,6 +115,7 @@ const adminNav = [
   ["messages", "Messages", MessageCircle],
   ["settings", "Settings", Settings],
 ];
+
 function App() {
   const [db, setDb] = useState(load);
   const [view, setView] = useState("customer");
@@ -107,6 +127,7 @@ function App() {
   const [editing, setEditing] = useState(null);
   const [customerFilter, setCustomerFilter] = useState("All");
   const [range, setRange] = useState("All time");
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE, JSON.stringify(db));
@@ -114,6 +135,7 @@ function App() {
       console.warn("Storage full");
     }
   }, [db]);
+
   // Read ?ref=CODE from URL on first mount and store pending referral attribution.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -131,13 +153,14 @@ function App() {
     const clean = new URL(window.location.href);
     clean.searchParams.delete("ref");
     window.history.replaceState({}, "", clean.toString());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 3500);
     return () => clearTimeout(id);
   }, [toast]);
+
   function modify(fn) {
     setDb((prev) => {
       const next = structuredClone(prev);
@@ -145,17 +168,21 @@ function App() {
       return next;
     });
   }
+
   function notify(msg) {
     setToast(msg);
   }
+
   function navigate(id) {
     setPage(id);
     setModal(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
   const active =
     db.customers.find((c) => c.id === db.activeCustomer) || db.customers[0];
   const stats = customerStats(db, active.id);
+
   function purchase(customerId, amount) {
     const a = Number(amount);
     if (!Number.isFinite(a) || a <= 0) {
@@ -191,7 +218,7 @@ function App() {
         status: "Demo notification",
       });
       // --- Referral reward (atomic, same state update) ---
-      const REFERRAL_BONUS = 25;
+      const REFERRAL_BONUS = 100;
       const referredCustomer = s.customers.find((c) => c.id === customerId);
       const referrerId = referredCustomer?.referredBy || null;
       if (referrerId && referrerId !== customerId) {
@@ -233,6 +260,7 @@ function App() {
     notify(`${base} points credited successfully!`);
     return true;
   }
+
   function redeem(reward) {
     if (stats.points < reward.points) {
       notify("You need more points to claim this reward");
@@ -273,6 +301,7 @@ function App() {
     setModal(null);
     notify(`🎉 ${reward.name} redeemed!`);
   }
+
   function sendOffer(customerId, offerId) {
     const o = db.offers.find((x) => x.id === offerId) || db.offers[0];
     if (!o) {
@@ -304,6 +333,7 @@ function App() {
     });
     notify(`Comeback offer simulated for ${c.name}`);
   }
+
   const totalSpend = db.purchases.reduce((a, p) => a + p.amount, 0);
   const repeat = db.customers.filter(
     (c) => customerStats(db, c.id).visits >= 2,
@@ -317,10 +347,7 @@ function App() {
   const redeemed = db.points
     .filter((p) => p.amount < 0)
     .reduce((a, p) => a - p.amount, 0);
-  const title =
-    view === "customer"
-      ? "Fruzo — fresh flavours, happier people"
-      : "Fruzo Business";
+
   function reset() {
     if (
       window.confirm(
@@ -332,6 +359,7 @@ function App() {
       notify("Demo data restored");
     }
   }
+
   return (
     <div className={`app ${view}`}>
       {view === "admin" && (
@@ -437,6 +465,13 @@ function App() {
                       <ChevronRight size={18} />
                     </button>
                   </section>
+                  <HomePromoCarousel
+                    db={db}
+                    active={active}
+                    modify={modify}
+                    notify={notify}
+                    setModal={setModal}
+                  />
                   <section className="hero">
                     <div className="hero-copy">
                       <span className="hero-pill">
@@ -974,7 +1009,9 @@ function App() {
                                     ? "Reward redeemed"
                                     : m.type === "referral"
                                       ? "Referral bonus"
-                                      : "Fruzo special offer"}
+                                      : m.type === "feedback"
+                                        ? "Feedback bonus"
+                                        : "Fruzo special offer"}
                               </strong>
                               <small className="notification-detail">
                                 {m.text}
@@ -1225,6 +1262,128 @@ function App() {
                           </button>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                  <div className="admin-lower-grid">
+                    <div className="panel">
+                      <PanelHead
+                        title="Referral programme"
+                        subtitle="Customer-to-customer referral tracking"
+                      />
+                      <div className="metrics-grid compact-metrics">
+                        <Metric
+                          icon={UserPlus}
+                          label="Total referrals"
+                          value={(db.referrals || []).length}
+                          detail="Invitations tracked"
+                        />
+                        <Metric
+                          icon={CheckCircle2}
+                          label="Successful"
+                          value={(db.referrals || []).filter(r => r.status === "rewarded").length}
+                          detail="Rewards credited"
+                        />
+                        <Metric
+                          icon={Coins}
+                          label="Points issued"
+                          value={`${(db.referrals || []).filter(r => r.status === "rewarded").length * 100}`}
+                          detail="Referral bonus points"
+                        />
+                      </div>
+                      {(db.referrals || []).length > 0 && (
+                        <div className="activity-list" style={{ marginTop: 14 }}>
+                          {(db.referrals || []).slice(0, 8).map((r) => {
+                            const referrer = db.customers.find(c => c.id === r.referrerCustomerId);
+                            const referred = db.customers.find(c => c.id === r.referredCustomerId);
+                            return (
+                              <div className="activity" key={r.id}>
+                                <span className="activity-icon">{r.status === "rewarded" ? "✅" : "⏳"}</span>
+                                <span className="grow">
+                                  <strong>{referrer?.name || "Unknown"} → {referred?.name || "Unknown"}</strong>
+                                  <small>
+                                    {r.status === "rewarded"
+                                      ? `Rewarded ${dateFmt(r.rewardedAt)} · +100 pts`
+                                      : `Pending · Created ${dateFmt(r.createdAt)}`}
+                                  </small>
+                                </span>
+                                <span className={"status " + (r.status === "rewarded" ? "good" : "")}>
+                                  {r.status === "rewarded" ? "Rewarded" : "Pending"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {(db.referrals || []).length === 0 && (
+                        <EmptyState
+                          icon={UserPlus}
+                          title="No referrals yet"
+                          subtitle="Customers can invite friends from their profile or homepage carousel."
+                        />
+                      )}
+                    </div>
+                    <div className="panel">
+                      <PanelHead
+                        title="Private feedback"
+                        subtitle="Direct customer feedback submissions"
+                      />
+                      <div className="metrics-grid compact-metrics">
+                        <Metric
+                          icon={MessageSquare}
+                          label="Submissions"
+                          value={(db.feedbacks || []).length}
+                          detail="Total feedback received"
+                        />
+                        <Metric
+                          icon={Star}
+                          label="Avg. rating"
+                          value={
+                            (db.feedbacks || []).filter(f => f.rating > 0).length > 0
+                              ? ((db.feedbacks || []).filter(f => f.rating > 0).reduce((a, f) => a + f.rating, 0) /
+                                (db.feedbacks || []).filter(f => f.rating > 0).length).toFixed(1)
+                              : "—"
+                          }
+                          detail="Out of 5 stars"
+                        />
+                        <Metric
+                          icon={Coins}
+                          label="Bonus issued"
+                          value={`${(db.feedbacks || []).filter(f => f.rewardCredited).length * 50}`}
+                          detail="Feedback bonus points"
+                        />
+                      </div>
+                      {(db.feedbacks || []).length > 0 && (
+                        <div className="activity-list" style={{ marginTop: 14 }}>
+                          {(db.feedbacks || []).slice(0, 8).map((f) => {
+                            const cust = db.customers.find(c => c.id === f.customerId);
+                            return (
+                              <div className="activity" key={f.id}>
+                                <span className="activity-icon">💬</span>
+                                <span className="grow">
+                                  <strong>{cust?.name || "Unknown"}</strong>
+                                  <small>
+                                    {f.rating > 0 ? "★".repeat(f.rating) + "☆".repeat(5 - f.rating) + " · " : ""}
+                                    {dateFmt(f.date)}
+                                    {f.rewardCredited ? " · +50 pts" : ""}
+                                  </small>
+                                  {f.comment && (
+                                    <p style={{ fontSize: 12, color: "#77776e", margin: "4px 0 0", lineHeight: 1.4 }}>
+                                      "{f.comment.length > 100 ? f.comment.slice(0, 100) + "…" : f.comment}"
+                                    </p>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {(db.feedbacks || []).length === 0 && (
+                        <EmptyState
+                          icon={MessageSquare}
+                          title="No feedback yet"
+                          subtitle="Customers can submit feedback from the homepage carousel."
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="overview-note">
@@ -1911,6 +2070,7 @@ function App() {
     </div>
   );
 }
+
 function Brand({ compact = false }) {
   return (
     <div className={"brand " + (compact ? "brand-compact" : "")}>
@@ -1921,6 +2081,7 @@ function Brand({ compact = false }) {
     </div>
   );
 }
+
 function SectionHeading({ label, title }) {
   return (
     <div className="section-title">
@@ -1929,6 +2090,7 @@ function SectionHeading({ label, title }) {
     </div>
   );
 }
+
 function PageIntro({ eyebrow, title, description }) {
   return (
     <div className="page-intro">
@@ -1938,6 +2100,7 @@ function PageIntro({ eyebrow, title, description }) {
     </div>
   );
 }
+
 function FoodCard({ item, onClick }) {
   return (
     <button
@@ -1975,6 +2138,7 @@ function FoodCard({ item, onClick }) {
     </button>
   );
 }
+
 function OfferCard({ offer, onClick }) {
   return (
     <button className="offer-card" onClick={onClick}>
@@ -1988,6 +2152,7 @@ function OfferCard({ offer, onClick }) {
     </button>
   );
 }
+
 function EmptyState({ icon: I, title, subtitle }) {
   return (
     <div className="empty-state">
@@ -1997,6 +2162,7 @@ function EmptyState({ icon: I, title, subtitle }) {
     </div>
   );
 }
+
 function AdminIntro({ title, desc, action }) {
   return (
     <div className="admin-title-row">
@@ -2009,6 +2175,7 @@ function AdminIntro({ title, desc, action }) {
     </div>
   );
 }
+
 function Metric({ icon: I, label, value, detail }) {
   return (
     <div className="metric">
@@ -2021,6 +2188,7 @@ function Metric({ icon: I, label, value, detail }) {
     </div>
   );
 }
+
 function PanelHead({ title, subtitle, right }) {
   return (
     <div className="panel-head">
@@ -2032,6 +2200,7 @@ function PanelHead({ title, subtitle, right }) {
     </div>
   );
 }
+
 function VisitBars({ purchases }) {
   const bins = Array.from({ length: 6 }, (_, i) => {
     const end = (5 - i) * 7;
@@ -2065,6 +2234,7 @@ function VisitBars({ purchases }) {
     </div>
   );
 }
+
 function PurchaseForm({ db, purchase, notify }) {
   const [c, setC] = useState(db.activeCustomer);
   const [amount, setAmount] = useState("");
@@ -2173,6 +2343,7 @@ function PurchaseForm({ db, purchase, notify }) {
     </>
   );
 }
+
 function SendOfferForm({ db, onSend }) {
   const [c, setC] = useState(db.customers.find((c) => c.consent)?.id || "");
   const [o, setO] = useState(db.offers.find((o) => o.active)?.id || "");
@@ -2212,6 +2383,7 @@ function SendOfferForm({ db, onSend }) {
     </div>
   );
 }
+
 function EditMenu({ item, onSave }) {
   const [name, setName] = useState(item?.name || "");
   const [price, setPrice] = useState(item?.price || "");
@@ -2313,6 +2485,7 @@ function EditMenu({ item, onSave }) {
     </form>
   );
 }
+
 function EditReward({ item, onSave }) {
   const [name, setName] = useState(item?.name || "");
   const [description, setDescription] = useState(item?.description || "");
@@ -2381,6 +2554,7 @@ function EditReward({ item, onSave }) {
     </form>
   );
 }
+
 function EditOffer({ item, onSave }) {
   const [title, setTitle] = useState(item?.title || "");
   const [description, setDescription] = useState(item?.description || "");
@@ -2455,10 +2629,14 @@ function EditOffer({ item, onSave }) {
     </form>
   );
 }
+
 function SettingsForm({ db, modify, reset, notify }) {
   const [name, setName] = useState(db.restaurant.name);
   const [tagline, setTagline] = useState(db.restaurant.tagline);
   const [rate, setRate] = useState(db.restaurant.earnRate);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(db.restaurant.googleReviewUrl || "");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState(db.restaurant.googleMapsUrl || "");
+
   return (
     <>
       <AdminIntro
@@ -2473,6 +2651,8 @@ function SettingsForm({ db, modify, reset, notify }) {
             s.restaurant.name = name;
             s.restaurant.tagline = tagline;
             s.restaurant.earnRate = Math.max(1, Number(rate));
+            s.restaurant.googleReviewUrl = googleReviewUrl.trim();
+            s.restaurant.googleMapsUrl = googleMapsUrl.trim();
           });
           notify("Settings saved");
         }}
@@ -2504,6 +2684,30 @@ function SettingsForm({ db, modify, reset, notify }) {
             onChange={(e) => setRate(e.target.value)}
           />
         </label>
+        <label>
+          Google Review URL
+          <input
+            type="url"
+            placeholder="https://g.page/r/..."
+            value={googleReviewUrl}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+          />
+          <small style={{ color: "#8b8b83", fontSize: 11, marginTop: 4, display: "block" }}>
+            Paste your Google Maps review link. Shown on customer app carousel.
+          </small>
+        </label>
+        <label>
+          Google Maps location URL
+          <input
+            type="url"
+            placeholder="https://maps.app.goo.gl/..."
+            value={googleMapsUrl}
+            onChange={(e) => setGoogleMapsUrl(e.target.value)}
+          />
+          <small style={{ color: "#8b8b83", fontSize: 11, marginTop: 4, display: "block" }}>
+            Paste your restaurant's Google Maps share link. If left empty, defaults to searching Fruzo.
+          </small>
+        </label>
         <button className="button button-yellow" type="submit">
           Save changes <Check size={17} />
         </button>
@@ -2522,13 +2726,512 @@ function SettingsForm({ db, modify, reset, notify }) {
   );
 }
 
-const REFERRAL_BONUS_PTS = 25;
+const REFERRAL_BONUS_PTS = 100;
+const FEEDBACK_BONUS_PTS = 50;
+const CAROUSEL_INTERVAL_MS = 2000;
 
-/**
- * ReferralSection - "Refer a Friend" on the Customer Profile page.
- * Reuses existing CSS classes (selector-card, outline-mini, transaction-list,
- * transaction, muted, positive, grow) without new design tokens.
- */
+function HomePromoCarousel({ db, active, modify, notify }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ align: "start", loop: true });
+  const [selected, setSelected] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+  const googleUrl = db.restaurant.googleReviewUrl || "";
+  const mapsUrl =
+    db.restaurant.googleMapsUrl ||
+    "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(db.restaurant.name || "Fruzo");
+  const referralUrl = active.referralCode
+    ? window.location.origin + window.location.pathname + "?ref=" + active.referralCode
+    : "";
+  const alreadyRewarded = (db.feedbacks || []).some(
+    (f) => f.customerId === active.id && f.rewardCredited
+  );
+
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const midForm = typing || rating > 0 || comment.trim().length > 0;
+  const paused = hovering || midForm || reducedMotion;
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi || paused) return;
+    const id = setInterval(() => emblaApi.scrollNext(), CAROUSEL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [emblaApi, paused, selected]);
+
+  const copyLink = useCallback(() => {
+    if (!referralUrl) return;
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(referralUrl)
+        .then(() => notify("Referral link copied to clipboard!"))
+        .catch(() => notify("Could not copy - open your Profile to copy manually."));
+    } else {
+      notify("Open your Profile to copy the link.");
+    }
+  }, [referralUrl, notify]);
+
+  const shareLink = useCallback(() => {
+    if (!referralUrl) return;
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Join me at Fruzo!",
+          text: "Join Fruzo for fresh blends and loyalty rewards. Use my invite link:",
+          url: referralUrl,
+        })
+        .catch((e) => {
+          if (e && e.name !== "AbortError") copyLink();
+        });
+    } else {
+      copyLink();
+    }
+  }, [referralUrl, copyLink]);
+
+  function submitFeedback() {
+    if (rating === 0 && !comment.trim()) {
+      notify("Add a rating or a short comment first");
+      return;
+    }
+    const credit = !alreadyRewarded;
+    const d = new Date().toISOString();
+    modify((s) => {
+      if (!Array.isArray(s.feedbacks)) s.feedbacks = [];
+      s.feedbacks.unshift({
+        id: newId(),
+        customerId: active.id,
+        rating,
+        comment: comment.trim(),
+        date: d,
+        rewardCredited: credit,
+      });
+      if (credit) {
+        s.points.unshift({
+          id: newId(),
+          customerId: active.id,
+          amount: FEEDBACK_BONUS_PTS,
+          type: "feedback",
+          date: d,
+          detail: "Thanks for your feedback",
+        });
+        s.messages.unshift({
+          id: newId(),
+          customerId: active.id,
+          date: d,
+          type: "feedback",
+          text: `Thank you for your feedback! You earned ${FEEDBACK_BONUS_PTS} bonus points.`,
+          status: "Demo notification",
+        });
+      }
+    });
+    setRating(0);
+    setComment("");
+    setTyping(false);
+    notify(
+      credit
+        ? `Thanks! ${FEEDBACK_BONUS_PTS} bonus points added`
+        : "Thanks for your feedback!"
+    );
+  }
+
+  const S = {
+    card: (bg, color) => ({
+      position: "relative",
+      overflow: "hidden",
+      flex: 1,
+      background: bg,
+      color,
+      borderRadius: 28,
+      padding: "24px 26px 26px",
+      boxSizing: "border-box",
+      boxShadow: "0 12px 32px rgba(0,0,0,.08)",
+      minHeight: 220,
+      display: "flex",
+      flexDirection: "column",
+      gap: 6,
+      transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease",
+    }),
+    blob: (size, top, right, bg) => ({
+      position: "absolute",
+      width: size,
+      height: size,
+      top,
+      right,
+      borderRadius: "50%",
+      background: bg,
+      pointerEvents: "none",
+      filter: "blur(20px)",
+      opacity: 0.7,
+    }),
+    bigEmoji: {
+      position: "absolute",
+      right: 18,
+      bottom: 8,
+      fontSize: 88,
+      opacity: 0.15,
+      transform: "rotate(-12deg)",
+      pointerEvents: "none",
+      userSelect: "none",
+      transition: "transform 0.4s ease",
+    },
+    badge: (bg, color) => ({
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      background: bg,
+      color,
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 6px 16px rgba(0,0,0,.12)",
+      flexShrink: 0,
+      transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    }),
+    pill: (bg, color) => ({
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      background: bg,
+      color,
+      fontSize: 10,
+      fontWeight: 900,
+      letterSpacing: "0.12em",
+      padding: "6px 12px",
+      borderRadius: 999,
+      backdropFilter: "blur(8px)",
+    }),
+    title: { margin: "8px 0 2px", fontSize: 23, lineHeight: 1.18, fontWeight: 800, position: "relative" },
+    sub: { margin: "0 0 14px", fontSize: 13, lineHeight: 1.5, opacity: 0.9, maxWidth: 440, position: "relative" },
+    row: { display: "flex", gap: 10, flexWrap: "wrap", position: "relative", marginTop: "auto" },
+    btn: (bg, color) => ({
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      background: bg,
+      color,
+      border: "none",
+      borderRadius: 999,
+      padding: "12px 20px",
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: "pointer",
+      textDecoration: "none",
+      boxShadow: "0 4px 14px rgba(0,0,0,.15)",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    }),
+    ghostBtn: (color) => ({
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      background: "rgba(255,255,255,.25)",
+      backdropFilter: "blur(10px)",
+      color,
+      border: "1.5px solid rgba(255,255,255,.4)",
+      borderRadius: 999,
+      padding: "11px 18px",
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+    }),
+    arrow: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      border: "1px solid #e7e6df",
+      background: "#fff",
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      color: "#3a3a30",
+      boxShadow: "0 4px 12px rgba(0,0,0,.06)",
+      transition: "all 0.2s ease",
+    },
+  };
+
+  const slides = [];
+
+  // 1. Refer a friend
+  slides.push(
+    <div key="ref" className="interactive-card" style={S.card("linear-gradient(135deg, #ffe36e 0%, #ffb703 100%)", "#2b2400")}>
+      <span style={S.blob(180, -60, -40, "rgba(255,255,255,.4)")} />
+      <span style={S.blob(100, "auto", 90, "rgba(255,255,255,.25)")} />
+      <span style={S.bigEmoji}>🎁</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+        <span className="badge-icon" style={S.badge("#2b2400", "#ffe36e")}>
+          <UserPlus size={22} />
+        </span>
+        <span style={S.pill("rgba(43,36,0,.12)", "#2b2400")}>
+          <Sparkles size={12} /> REFER A FRIEND
+        </span>
+      </div>
+      <h3 style={S.title}>Share the love, earn {REFERRAL_BONUS_PTS} points</h3>
+      <p style={S.sub}>
+        When a friend makes their first purchase, you get {REFERRAL_BONUS_PTS} bonus points. Everybody wins.
+      </p>
+      <div style={S.row}>
+        <button className="btn-hover-effect" style={S.btn("#2b2400", "#ffe36e")} onClick={shareLink}>
+          <Share2 size={15} /> Share invite
+        </button>
+        <button className="btn-ghost-effect" style={S.ghostBtn("#2b2400")} onClick={copyLink}>
+          <Copy size={15} /> Copy link
+        </button>
+      </div>
+    </div>
+  );
+
+  // 2. Updated Google Map & Review Banner (Rich Deep Sunset Vibrant Theme)
+  slides.push(
+    <div
+      key="google-review-banner"
+      className="interactive-card"
+      style={{
+        ...S.card("linear-gradient(135deg, #FF4E50 0%, #F9D423 100%)", "#ffffff"),
+        position: "relative",
+        boxShadow: "0 14px 36px rgba(255, 78, 80, 0.25)",
+      }}
+    >
+      <span style={S.blob(200, -70, -40, "rgba(255,255,255,.35)")} />
+      <span style={S.blob(110, "auto", 100, "rgba(255,255,255,.25)")} />
+      <span style={S.bigEmoji}>⭐</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative", zIndex: 1 }}>
+        <span className="badge-icon" style={S.badge("#ffffff", "#FF4E50")}>
+          <MapPin size={24} fill="#FF4E50" color="#FF4E50" />
+        </span>
+        <span style={S.pill("rgba(255,255,255,.25)", "#ffffff")}>
+          <Heart size={12} fill="#ffffff" /> REVIEW US ON GOOGLE
+        </span>
+      </div>
+      <h3 style={{ ...S.title, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+        Love Fruzo? Rate us on Google Maps!
+      </h3>
+      <div style={{ display: "flex", gap: 3, margin: "2px 0 6px", position: "relative", zIndex: 1 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star key={n} size={18} color="#ffffff" fill="#ffffff" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }} />
+        ))}
+      </div>
+      <p style={{ ...S.sub, color: "rgba(255, 255, 255, 0.95)" }}>
+        Your feedback helps us grow and keep blending happiness for our wonderful community!
+      </p>
+      <div style={S.row}>
+        <a
+          href={googleUrl || mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-hover-effect"
+          style={S.btn("#ffffff", "#D31027")}
+        >
+          <ThumbsUp size={16} /> Review us on Google <ExternalLink size={14} />
+        </a>
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost-effect"
+          style={S.ghostBtn("#ffffff")}
+        >
+          <Navigation size={15} /> Get Directions
+        </a>
+      </div>
+    </div>
+  );
+
+  // 3. Private feedback
+  slides.push(
+    <div key="fb" className="interactive-card" style={S.card("linear-gradient(135deg, #ff9ab0 0%, #ff5c8a 100%)", "#fff")}>
+      <span style={S.blob(180, -60, -40, "rgba(255,255,255,.25)")} />
+      <span style={S.bigEmoji}>💬</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+        <span className="badge-icon" style={S.badge("#fff", "#ff5c8a")}>
+          <MessageSquare size={22} />
+        </span>
+        <span style={S.pill("rgba(255,255,255,.22)", "#fff")}>
+          <ShieldCheck size={12} /> PRIVATE FEEDBACK
+        </span>
+        {!alreadyRewarded && (
+          <span style={S.pill("#fff", "#d6336c")}>
+            <Coins size={12} /> +{FEEDBACK_BONUS_PTS} PTS
+          </span>
+        )}
+      </div>
+      <h3 style={S.title}>Tell us how we did</h3>
+      <p style={{ ...S.sub, marginBottom: 8 }}>Only the Fruzo team sees this.</p>
+      <div style={{ display: "flex", gap: 2, marginBottom: 8, position: "relative" }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            onClick={() => setRating(n === rating ? 0 : n)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 2,
+              lineHeight: 0,
+              transition: "transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              transform: n <= rating ? "scale(1.2)" : "scale(1)",
+            }}
+          >
+            <Star
+              size={26}
+              color={n <= rating ? "#ffd43b" : "rgba(255,255,255,.75)"}
+              fill={n <= rating ? "#ffd43b" : "transparent"}
+            />
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "stretch", position: "relative", flexWrap: "wrap" }}>
+        <textarea
+          rows={1}
+          value={comment}
+          placeholder="Anything we could do better?"
+          onChange={(e) => setComment(e.target.value)}
+          onFocus={() => setTyping(true)}
+          onBlur={() => setTyping(false)}
+          style={{
+            flex: 1,
+            minWidth: 160,
+            boxSizing: "border-box",
+            padding: "11px 14px",
+            border: "none",
+            borderRadius: 14,
+            font: "inherit",
+            fontSize: 13,
+            color: "#2b2b25",
+            background: "rgba(255,255,255,.95)",
+            resize: "none",
+            outline: "none",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        />
+        <button className="btn-hover-effect" style={S.btn("#fff", "#d6336c")} onClick={submitFeedback}>
+          <Send size={15} /> Send
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <section
+      style={{ margin: "20px 0" }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <style>{`
+        @keyframes fruzoDotFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        
+        .interactive-card:hover {
+          transform: translateY(-4px) scale(1.005);
+        }
+        .interactive-card:hover .badge-icon {
+          transform: scale(1.1) rotate(4deg);
+        }
+        .btn-hover-effect:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.2) !important;
+        }
+        .btn-ghost-effect:hover {
+          background: rgba(255,255,255,0.4) !important;
+          transform: translateY(-2px);
+        }
+        .arrow-btn:hover {
+          transform: scale(1.1);
+          background: #f8f8f2 !important;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.1) !important;
+        }
+      `}</style>
+
+      <div ref={emblaRef} style={{ overflow: "hidden", borderRadius: 28, padding: "4px 2px 14px" }}>
+        <div style={{ display: "flex" }}>
+          {slides.map((s, i) => (
+            <div key={i} style={{ flex: "0 0 100%", minWidth: 0, padding: "0 6px", display: "flex" }}>
+              {s}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <button
+          type="button"
+          aria-label="Previous"
+          className="arrow-btn"
+          style={S.arrow}
+          onClick={() => emblaApi && emblaApi.scrollPrev()}
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+          {slides.map((_, i) => {
+            const on = i === selected;
+            return (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Go to slide ${i + 1}`}
+                onClick={() => emblaApi && emblaApi.scrollTo(i)}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  width: on ? 32 : 9,
+                  height: 9,
+                  borderRadius: 5,
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  background: "#e3e0cf",
+                  transition: "all .3s cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+              >
+                {on && (
+                  <span
+                    key={selected}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "#f2b705",
+                      transformOrigin: "left",
+                      animation: paused
+                        ? "none"
+                        : `fruzoDotFill ${CAROUSEL_INTERVAL_MS}ms linear forwards`,
+                      transform: paused ? "scaleX(1)" : undefined,
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          aria-label="Next"
+          className="arrow-btn"
+          style={S.arrow}
+          onClick={() => emblaApi && emblaApi.scrollNext()}
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function ReferralSection({ db, active, modify, notify }) {
   const referralCode = active.referralCode || "";
   const referralUrl = referralCode
