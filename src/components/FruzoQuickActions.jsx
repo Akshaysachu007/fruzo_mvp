@@ -75,13 +75,13 @@ export function FruzoQuickActions({ view, onSwitchView, restaurant = {} }) {
       <button
         ref={triggerRef}
         type="button"
-        className="fruzo-quick-trigger grid h-16 w-16 place-items-center rounded-full bg-[#FFDC16] text-black"
+        className="fruzo-quick-trigger grid h-[58px] w-[58px] place-items-center rounded-full bg-[#FFDC16] text-black"
         aria-label={isOpen ? "Close quick actions" : "Open quick actions"}
         aria-expanded={isOpen}
         aria-controls={actionsId}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <Plus size={30} strokeWidth={2.3} aria-hidden="true" />
+        <Plus size={24} strokeWidth={2} aria-hidden="true" />
       </button>
       <div id={actionsId} className="fruzo-radial-actions" role="group" aria-label="Quick actions" aria-hidden={!isOpen} inert={!isOpen}>
         {actions.map(({ id, angle, label, Icon, href, className, onClick }, index) => {
