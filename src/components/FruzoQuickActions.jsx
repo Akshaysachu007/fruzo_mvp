@@ -24,14 +24,14 @@ export function FruzoQuickActions({ view, onSwitchView, restaurant = {} }) {
   const instagramUrl = configuredUrl(
     restaurant.instagramUrl || import.meta.env.VITE_FRUZO_INSTAGRAM_URL,
     ["instagram.com", "www.instagram.com"],
-  );
+  ) || "https://instagram.com";
   const whatsappUrl = configuredUrl(
     restaurant.whatsappUrl || import.meta.env.VITE_FRUZO_WHATSAPP_URL,
     ["wa.me", "api.whatsapp.com", "web.whatsapp.com", "whatsapp.com", "www.whatsapp.com"],
-  );
+  ) || "https://wa.me";
   const phone = String(restaurant.phoneNumber || restaurant.phone || import.meta.env.VITE_FRUZO_PHONE_NUMBER || "").trim();
   const phoneDigits = phone.replace(/[\s().-]/g, "");
-  const phoneUrl = /^\+?\d{7,15}$/.test(phoneDigits) ? `tel:${phoneDigits}` : undefined;
+  const phoneUrl = /^\+?\d{7,15}$/.test(phoneDigits) ? `tel:${phoneDigits}` : "tel:";
   const nextView = view === "admin" ? "customer" : "admin";
 
   useEffect(() => {
@@ -86,8 +86,6 @@ export function FruzoQuickActions({ view, onSwitchView, restaurant = {} }) {
       <div id={actionsId} className="fruzo-radial-actions" role="group" aria-label="Quick actions" aria-hidden={!isOpen} inert={!isOpen}>
         {actions.map(({ id, angle, label, Icon, href, className, onClick }, index) => {
           const radians = angle * Math.PI / 180;
-          const unavailable = id !== "switch" && !href;
-          const description = unavailable ? `${label} — contact not configured` : label;
           const Action = href ? "a" : "button";
           return (
             <div
@@ -105,14 +103,13 @@ export function FruzoQuickActions({ view, onSwitchView, restaurant = {} }) {
                 type={href ? undefined : "button"}
                 target={href && id !== "call" ? "_blank" : undefined}
                 rel={href && id !== "call" ? "noopener noreferrer" : undefined}
-                disabled={unavailable}
-                aria-label={description}
+                aria-label={label}
                 tabIndex={isOpen ? undefined : -1}
                 onClick={onClick || closeAfterAction}
               >
                 <Icon size={23} aria-hidden="true" />
               </Action>
-              <span className="fruzo-radial-label" aria-hidden="true">{description}</span>
+              <span className="fruzo-radial-label" aria-hidden="true">{label}</span>
             </div>
           );
         })}

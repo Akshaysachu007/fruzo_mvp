@@ -43,7 +43,6 @@
   transition: transform 200ms cubic-bezier(.22, 1, .36, 1), box-shadow 200ms ease;
 }
 .is-open .fruzo-radial-action { pointer-events: auto; }
-.fruzo-radial-action:disabled { opacity: .55; }
 .fruzo-radial-action:focus-visible, .fruzo-quick-trigger:focus-visible {
   outline: 3px solid #c6a51a;
   outline-offset: 4px;
@@ -75,11 +74,11 @@
 }
 @media (hover: hover) {
   .fruzo-quick-trigger:hover { transform: scale(1.05); box-shadow: 0 10px 34px #0004; }
-  .fruzo-radial-action:not(:disabled):hover { transform: scale(1.1); box-shadow: 0 9px 24px #0004; }
+  .fruzo-radial-action:hover { transform: scale(1.1); box-shadow: 0 9px 24px #0004; }
   .is-open .fruzo-radial-position:hover .fruzo-radial-label { visibility: visible; opacity: 1; transform: translateY(0); }
 }
 .fruzo-quick-trigger:active { transform: scale(.96); }
-.fruzo-radial-action:not(:disabled):active { transform: scale(.94); }
+.fruzo-radial-action:active { transform: scale(.94); }
 @media (max-width: 640px) {
   .fruzo-quick-actions {
     right: max(16px, env(safe-area-inset-right));
