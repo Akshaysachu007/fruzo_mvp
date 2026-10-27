@@ -65,6 +65,17 @@ import {
   newId,
   generateReferralCode,
 } from "./data";
+import { FruzoFloatingButtons } from "./components/FruzoFloatingButtons";
+
+/* Tailwind-powered Fruzo interactions: one-file optional animation keyframes. */
+const FruzoMotionStyles = () => (
+  <style>{`
+    @keyframes fruzoRise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes fruzoFloat { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+    @keyframes fruzoPop { from { opacity: 0; transform: translateY(10px) scale(.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+    @media (prefers-reduced-motion: reduce) { .app *, .app *::before, .app *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+  `}</style>
+);
 
 const STORAGE = "fruzo-demo-mvp-v1";
 // Pending referral attribution: stored in sessionStorage when a ?ref= URL is opened.
@@ -361,9 +372,9 @@ function App() {
   }
 
   return (
-    <div className={`app ${view}`}>
+    <div className={`app ${view}`}><FruzoMotionStyles />
       {view === "admin" && (
-        <aside className="sidebar">
+        <aside className="sidebar shadow-[6px_0_24px_-23px_rgba(20,20,20,0.35)]">
           <Brand />
           <div className="side-caption">WORKSPACE</div>
           <div className="side-links">
@@ -417,7 +428,7 @@ function App() {
                 </nav>
                 <div className="header-tools">
                   <button
-                    className="icon-button"
+                    className="icon-button motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                     aria-label="Notifications"
                     onClick={() => navigate("notifications")}
                   >
@@ -438,7 +449,7 @@ function App() {
             <main className="customer-content">
               {page === "home" && (
                 <>
-                  <section className="home-welcome">
+                  <section className="home-welcome motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <div>
                       <span className="eyebrow">
                         GOOD VIBES, {active.name.split(" ")[0].toUpperCase()} 👋
@@ -452,7 +463,7 @@ function App() {
                       </p>
                     </div>
                     <button
-                      className="compact-wallet"
+                      className="compact-wallet motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                       onClick={() => navigate("wallet")}
                     >
                       <span className="wallet-icon">
@@ -472,7 +483,7 @@ function App() {
                     notify={notify}
                     setModal={setModal}
                   />
-                  <section className="hero">
+                  <section className="hero motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <div className="hero-copy">
                       <span className="hero-pill">
                         <Sparkles size={14} /> MADE WITH HAPPINESS
@@ -487,20 +498,20 @@ function App() {
                         most-loved refreshers.
                       </p>
                       <button
-                        className="button button-dark"
+                        className="button button-dark motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                         onClick={() => navigate("menu")}
                       >
                         Explore the menu <ArrowRight size={18} />
                       </button>
                     </div>
-                    <div className="hero-art">
+                    <div className="hero-art motion-safe:animate-[fruzoFloat_5s_ease-in-out_infinite]">
                       <span className="hero-fruit one">🥭</span>
                       <span className="hero-drink">🥤</span>
                       <span className="hero-fruit two">🍓</span>
                       <span className="hero-deco">✺</span>
                     </div>
                   </section>
-                  <div className="search-home" onClick={() => navigate("menu")}>
+                  <div className="search-home motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" onClick={() => navigate("menu")}>
                     <Search size={20} />
                     <span>What are you craving today?</span>
                     <span className="search-hint">
@@ -511,7 +522,7 @@ function App() {
                     label="EXPLORE FRUZO"
                     title="Something for every craving"
                   />
-                  <div className="category-row">
+                  <div className="category-row motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     {[
                       ["All", "✨"],
                       ["Juices", "🥭"],
@@ -520,7 +531,7 @@ function App() {
                       ["Snacks", "🍟"],
                     ].map(([cat, emoji]) => (
                       <button
-                        className="cat-tile"
+                        className="cat-tile motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out hover:-translate-y-1 hover:shadow-xl hover:border-amber-200 active:translate-y-0 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
                         key={cat}
                         onClick={() => {
                           setCategory(cat);
@@ -556,7 +567,7 @@ function App() {
                         />
                       ))}
                   </div>
-                  <section className="yellow-promo">
+                  <section className="yellow-promo motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <div>
                       <span className="eyebrow">THE FRUZO CLUB</span>
                       <h2>
@@ -569,13 +580,13 @@ function App() {
                         times flowing.
                       </p>
                       <button
-                        className="button button-dark"
+                        className="button button-dark motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                         onClick={() => navigate("rewards")}
                       >
                         See my rewards <ArrowRight size={17} />
                       </button>
                     </div>
-                    <span className="promo-icon">🎁</span>
+                    <span className="promo-icon motion-safe:animate-[fruzoFloat_5s_ease-in-out_infinite]">🎁</span>
                   </section>
                   <div className="split-heading">
                     <SectionHeading
@@ -674,12 +685,12 @@ function App() {
                         .toLowerCase()
                         .includes(query.toLowerCase()),
                   ) && (
-                    <EmptyState
-                      icon={Search}
-                      title="Nothing found"
-                      subtitle="Try a different search or category."
-                    />
-                  )}
+                      <EmptyState
+                        icon={Search}
+                        title="Nothing found"
+                        subtitle="Try a different search or category."
+                      />
+                    )}
                 </>
               )}
               {page === "rewards" && (
@@ -689,7 +700,7 @@ function App() {
                     title="The rewards club"
                     description="Every visit gets you closer to something delicious."
                   />
-                  <section className="rewards-hero">
+                  <section className="rewards-hero motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <span className="sparkle-float">✨</span>
                     <div>
                       <span className="eyebrow">YOUR AVAILABLE POINTS</span>
@@ -702,7 +713,7 @@ function App() {
                         corner.
                       </p>
                     </div>
-                    <div className="big-gift">🎁</div>
+                    <div className="big-gift motion-safe:animate-[fruzoFloat_5s_ease-in-out_infinite]">🎁</div>
                   </section>
                   <div className="split-heading">
                     <SectionHeading
@@ -718,7 +729,7 @@ function App() {
                     {db.rewards
                       .filter((r) => r.active)
                       .map((r) => (
-                        <div className="reward-card" key={r.id}>
+                        <div className="reward-card motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out hover:-translate-y-1 hover:shadow-xl hover:border-amber-200 active:translate-y-0 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500" key={r.id}>
                           <div className="reward-emoji">{r.emoji}</div>
                           <div className="reward-body">
                             <strong>{r.name}</strong>
@@ -769,7 +780,7 @@ function App() {
                     title="My points wallet"
                     description="Little rewards for all your favourite Fruzo moments."
                   />
-                  <section className="wallet-hero">
+                  <section className="wallet-hero motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <span>FRUZO REWARDS CLUB</span>
                     <div className="wallet-large-value">
                       <Coins size={32} />
@@ -840,7 +851,7 @@ function App() {
                     title="My Fruzo profile"
                     description="Your very own corner of happiness."
                   />
-                  <div className="profile-top">
+                  <div className="profile-top motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <span className="profile-avatar">
                       {active.name.slice(0, 1)}
                     </span>
@@ -1057,7 +1068,7 @@ function App() {
                 <small>No real purchases or messages are sent.</small>
               </div>
             </footer>
-            <nav className="bottom-nav">
+            <nav className="bottom-nav shadow-[0_-8px_28px_rgba(20,20,20,0.08)]">
               {customerNav.map(([id, name, I]) => (
                 <button
                   key={id}
@@ -1084,7 +1095,7 @@ function App() {
                   <span /> LIVE DEMO
                 </span>
                 <button
-                  className="icon-button"
+                  className="icon-button motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                   aria-label="Customer view"
                   title="Open customer view"
                   onClick={() => {
@@ -1100,7 +1111,7 @@ function App() {
             <main className="admin-content">
               {page === "dashboard" && (
                 <>
-                  <div className="admin-title-row">
+                  <div className="admin-title-row motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
                     <div>
                       <span className="eyebrow">
                         YOUR RESTAURANT, AT A GLANCE
@@ -1117,7 +1128,7 @@ function App() {
                       <p>Here's how your loyalty club is doing.</p>
                     </div>
                     <button
-                      className="button button-yellow"
+                      className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                       onClick={() => navigate("purchase")}
                     >
                       <Plus size={17} /> Record a purchase
@@ -1195,7 +1206,7 @@ function App() {
                     </div>
                   </div>
                   <div className="admin-lower-grid">
-                    <div className="panel">
+                    <div className="panel motion-safe:transition-shadow motion-safe:duration-300 hover:shadow-lg">
                       <PanelHead
                         title="Recent purchases"
                         subtitle="Latest loyalty activity"
@@ -1237,7 +1248,7 @@ function App() {
                           ))}
                       </div>
                     </div>
-                    <div className="panel">
+                    <div className="panel motion-safe:transition-shadow motion-safe:duration-300 hover:shadow-lg">
                       <PanelHead
                         title="Quick actions"
                         subtitle="Everything you need, one click away"
@@ -1252,7 +1263,7 @@ function App() {
                           [MessageCircle, "Messages", "messages"],
                         ].map(([I, text, id]) => (
                           <button
-                            className="action-card"
+                            className="action-card motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                             key={id}
                             onClick={() => navigate(id)}
                           >
@@ -1265,7 +1276,7 @@ function App() {
                     </div>
                   </div>
                   <div className="admin-lower-grid">
-                    <div className="panel">
+                    <div className="panel motion-safe:transition-shadow motion-safe:duration-300 hover:shadow-lg">
                       <PanelHead
                         title="Referral programme"
                         subtitle="Customer-to-customer referral tracking"
@@ -1322,7 +1333,7 @@ function App() {
                         />
                       )}
                     </div>
-                    <div className="panel">
+                    <div className="panel motion-safe:transition-shadow motion-safe:duration-300 hover:shadow-lg">
                       <PanelHead
                         title="Private feedback"
                         subtitle="Direct customer feedback submissions"
@@ -1493,7 +1504,7 @@ function App() {
                     desc="Update items here and the customer menu changes instantly."
                     action={
                       <button
-                        className="button button-yellow"
+                        className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                         onClick={() => setModal({ type: "editMenu" })}
                       >
                         <Plus size={17} /> Add item
@@ -1542,7 +1553,7 @@ function App() {
                               {m.available ? "Available" : "Hidden"}
                             </span>
                             <button
-                              className="icon-button"
+                              className="icon-button motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                               title="Edit"
                               onClick={() =>
                                 setModal({ type: "editMenu", item: m })
@@ -1551,7 +1562,7 @@ function App() {
                               <Edit3 size={18} />
                             </button>
                             <button
-                              className="icon-button"
+                              className="icon-button motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                               title="Toggle availability"
                               onClick={() => {
                                 modify((s) => {
@@ -1580,7 +1591,7 @@ function App() {
                     desc="Set the treats that keep customers coming back."
                     action={
                       <button
-                        className="button button-yellow"
+                        className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                         onClick={() => setModal({ type: "editReward" })}
                       >
                         <Plus size={17} /> Add reward
@@ -1655,7 +1666,7 @@ function App() {
                     desc="Create simple promotions and invite opted-in customers back."
                     action={
                       <button
-                        className="button button-yellow"
+                        className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                         onClick={() => setModal({ type: "editOffer" })}
                       >
                         <Plus size={17} /> Create offer
@@ -1787,7 +1798,7 @@ function App() {
                 />
               )}
             </main>
-            <nav className="bottom-nav admin-bottom">
+            <nav className="bottom-nav admin-bottom shadow-[0_-8px_28px_rgba(20,20,20,0.08)]">
               {[
                 ["dashboard", "Home", LayoutDashboard],
                 ["customers", "Customers", Users],
@@ -1799,13 +1810,13 @@ function App() {
                   key={id}
                   className={
                     page === id ||
-                    (id === "more" &&
-                      ![
-                        "dashboard",
-                        "customers",
-                        "purchase",
-                        "offers",
-                      ].includes(page))
+                      (id === "more" &&
+                        ![
+                          "dashboard",
+                          "customers",
+                          "purchase",
+                          "offers",
+                        ].includes(page))
                       ? "active"
                       : ""
                   }
@@ -1821,6 +1832,9 @@ function App() {
           </>
         )}
       </div>
+      {view === "customer" && page === "home" && (
+        <FruzoFloatingButtons />
+      )}
       <div className="demo-switch">
         <span className="demo-label">LIVE PREVIEW</span>
         <button
@@ -1843,7 +1857,7 @@ function App() {
         </button>
       </div>
       {toast && (
-        <div className="toast">
+        <div className="toast motion-safe:animate-[fruzoRise_.3s_ease-out_both]">
           <CheckCircle2 size={18} />
           {toast}
           <button onClick={() => setToast("")}>
@@ -1858,7 +1872,7 @@ function App() {
             if (e.target === e.currentTarget) setModal(null);
           }}
         >
-          <div className="modal">
+          <div className="modal motion-safe:animate-[fruzoPop_.25s_ease-out_both]">
             <button
               className="modal-close icon-button"
               onClick={() => setModal(null)}
@@ -2141,7 +2155,7 @@ function FoodCard({ item, onClick }) {
 
 function OfferCard({ offer, onClick }) {
   return (
-    <button className="offer-card" onClick={onClick}>
+    <button className="offer-card motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out hover:-translate-y-1 hover:shadow-xl hover:border-amber-200 active:translate-y-0 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500" onClick={onClick}>
       <span className="offer-decoration">{offer.emoji}</span>
       <span className="eyebrow">EXCLUSIVE AT FRUZO</span>
       <h3>{offer.title}</h3>
@@ -2165,7 +2179,7 @@ function EmptyState({ icon: I, title, subtitle }) {
 
 function AdminIntro({ title, desc, action }) {
   return (
-    <div className="admin-title-row">
+    <div className="admin-title-row motion-safe:animate-[fruzoRise_.5s_ease-out_both]">
       <div>
         <span className="eyebrow">FRUZO BUSINESS</span>
         <h1>{title}</h1>
@@ -2178,7 +2192,7 @@ function AdminIntro({ title, desc, action }) {
 
 function Metric({ icon: I, label, value, detail }) {
   return (
-    <div className="metric">
+    <div className="metric motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out hover:-translate-y-1 hover:shadow-xl hover:border-amber-200 active:translate-y-0 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500">
       <span className="metric-icon">
         <I size={23} />
       </span>
@@ -2374,7 +2388,7 @@ function SendOfferForm({ db, onSend }) {
         </select>
       </div>
       <button
-        className="button button-yellow"
+        className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
         disabled={!c || !o}
         onClick={() => onSend(c, o)}
       >
@@ -2708,7 +2722,7 @@ function SettingsForm({ db, modify, reset, notify }) {
             Paste your restaurant's Google Maps share link. If left empty, defaults to searching Fruzo.
           </small>
         </label>
-        <button className="button button-yellow" type="submit">
+        <button className="button button-yellow motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" type="submit">
           Save changes <Check size={17} />
         </button>
       </form>
@@ -2728,7 +2742,7 @@ function SettingsForm({ db, modify, reset, notify }) {
 
 const REFERRAL_BONUS_PTS = 100;
 const FEEDBACK_BONUS_PTS = 50;
-const CAROUSEL_INTERVAL_MS = 2000;
+const CAROUSEL_INTERVAL_MS = 3000;
 
 function HomePromoCarousel({ db, active, modify, notify }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: "start", loop: true });
@@ -2742,7 +2756,7 @@ function HomePromoCarousel({ db, active, modify, notify }) {
   const mapsUrl =
     db.restaurant.googleMapsUrl ||
     "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(db.restaurant.name || "Fruzo");
+    encodeURIComponent(db.restaurant.name || "Fruzo");
   const referralUrl = active.referralCode
     ? window.location.origin + window.location.pathname + "?ref=" + active.referralCode
     : "";
@@ -2758,6 +2772,14 @@ function HomePromoCarousel({ db, active, modify, notify }) {
   const paused = hovering || midForm || reducedMotion;
 
   useEffect(() => {
+    if (!emblaApi || paused) return;
+    const interval = window.setInterval(() => {
+      emblaApi.scrollNext();
+    }, CAROUSEL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [emblaApi, paused]);
+
+  useEffect(() => {
     if (!emblaApi) return;
     const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
     onSelect();
@@ -2769,11 +2791,6 @@ function HomePromoCarousel({ db, active, modify, notify }) {
     };
   }, [emblaApi]);
 
-  useEffect(() => {
-    if (!emblaApi || paused) return;
-    const id = setInterval(() => emblaApi.scrollNext(), CAROUSEL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [emblaApi, paused, selected]);
 
   const copyLink = useCallback(() => {
     if (!referralUrl) return;
@@ -3207,10 +3224,8 @@ function HomePromoCarousel({ db, active, modify, notify }) {
                       inset: 0,
                       background: "#f2b705",
                       transformOrigin: "left",
-                      animation: paused
-                        ? "none"
-                        : `fruzoDotFill ${CAROUSEL_INTERVAL_MS}ms linear forwards`,
-                      transform: paused ? "scaleX(1)" : undefined,
+                      animation: "none",
+                      transform: "scaleX(1)",
                     }}
                   />
                 )}
@@ -3236,9 +3251,9 @@ function ReferralSection({ db, active, modify, notify }) {
   const referralCode = active.referralCode || "";
   const referralUrl = referralCode
     ? window.location.origin +
-      window.location.pathname +
-      "?ref=" +
-      referralCode
+    window.location.pathname +
+    "?ref=" +
+    referralCode
     : "";
 
   const myReferrals = (db.referrals || []).filter(
@@ -3285,10 +3300,10 @@ function ReferralSection({ db, active, modify, notify }) {
     setSimCustomerId("");
     notify(
       "Referral attributed! Record " +
-        target.name.split(" ")[0] +
-        "'s first purchase in Admin to earn " +
-        REFERRAL_BONUS_PTS +
-        " pts."
+      target.name.split(" ")[0] +
+      "'s first purchase in Admin to earn " +
+      REFERRAL_BONUS_PTS +
+      " pts."
     );
   }
 
