@@ -2104,7 +2104,7 @@ function Brand({ compact = false }) {
       <span className="logo-word">
         fruzo<span className="logo-dot">.</span>
       </span>
-      <span className="logo-tagline">We blend happiness</span>
+      {/* <span className="logo-tagline">We blend happiness</span> */}
     </div>
   );
 }
