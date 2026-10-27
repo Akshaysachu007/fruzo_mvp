@@ -55,6 +55,8 @@ import {
   MapPin,
   Navigation,
   ThumbsUp,
+  Moon,
+  Sun,
 } from "lucide-react";
 import {
   makeInitial,
@@ -65,7 +67,7 @@ import {
   newId,
   generateReferralCode,
 } from "./data";
-import { FruzoFloatingButtons } from "./components/FruzoFloatingButtons";
+import { FruzoQuickActions } from "./components/FruzoQuickActions";
 
 /* Tailwind-powered Fruzo interactions: one-file optional animation keyframes. */
 const FruzoMotionStyles = () => (
@@ -129,6 +131,13 @@ const adminNav = [
 
 function App() {
   const [db, setDb] = useState(load);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem("fruzo-theme");
+      if (saved === "dark" || saved === "light") return saved;
+    } catch { /* Theme still works when storage is unavailable. */ }
+    return "light";
+  });
   const [view, setView] = useState("customer");
   const [page, setPage] = useState("home");
   const [toast, setToast] = useState("");
@@ -138,6 +147,24 @@ function App() {
   const [editing, setEditing] = useState(null);
   const [customerFilter, setCustomerFilter] = useState("All");
   const [range, setRange] = useState("All time");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("fruzo-theme", theme); } catch { /* Optional persistence. */ }
+  }, [theme]);
+
+  const themeToggle = (
+    <button
+      type="button"
+      className="theme-toggle"
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={theme === "dark"}
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+    >
+      {theme === "dark" ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+    </button>
+  );
 
   useEffect(() => {
     try {
@@ -427,6 +454,7 @@ function App() {
                   ))}
                 </nav>
                 <div className="header-tools">
+                  {themeToggle}
                   <button
                     className="icon-button motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                     aria-label="Notifications"
@@ -1091,6 +1119,7 @@ function App() {
                 </strong>
               </div>
               <div className="admin-head-actions">
+                {themeToggle}
                 <span className="demo-badge">
                   <span /> LIVE DEMO
                 </span>
@@ -1832,30 +1861,14 @@ function App() {
           </>
         )}
       </div>
-      {view === "customer" && page === "home" && (
-        <FruzoFloatingButtons />
-      )}
-      <div className="demo-switch">
-        <span className="demo-label">LIVE PREVIEW</span>
-        <button
-          className={view === "customer" ? "current" : ""}
-          onClick={() => {
-            setView("customer");
-            navigate("home");
-          }}
-        >
-          <UserRound size={15} /> Customer
-        </button>
-        <button
-          className={view === "admin" ? "current" : ""}
-          onClick={() => {
-            setView("admin");
-            navigate("dashboard");
-          }}
-        >
-          <LayoutDashboard size={15} /> Admin
-        </button>
-      </div>
+      <FruzoQuickActions
+        view={view}
+        restaurant={db.restaurant}
+        onSwitchView={(nextView) => {
+          setView(nextView);
+          navigate(nextView === "admin" ? "dashboard" : "home");
+        }}
+      />
       {toast && (
         <div className="toast motion-safe:animate-[fruzoRise_.3s_ease-out_both]">
           <CheckCircle2 size={18} />
@@ -2252,82 +2265,166 @@ function VisitBars({ purchases }) {
 function PurchaseForm({ db, purchase, notify }) {
   const [c, setC] = useState(db.activeCustomer);
   const [amount, setAmount] = useState("");
-  const [success, setSuccess] = useState(false);
-  const points = Math.floor(Number(amount || 0) / db.restaurant.earnRate);
+  const [success, setSuccess] = useState(null);
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+  const amountRef = useRef(null);
+  const customer = db.customers.find((item) => item.id === c);
+  const earnRate = Number(db.restaurant.earnRate || 10);
+  const points = Math.floor(Number(amount || 0) / earnRate);
+  const validAmount = Number.isFinite(Number(amount)) && Number(amount) >= 1 && Number.isInteger(Number(amount));
+  const canSubmit = !!customer && validAmount && !searchOpen;
+  const query = customerQuery.trim().toLocaleLowerCase().replace(/\s+/g, " ");
+  const phoneQuery = query.replace(/\D/g, "");
+  const matches = db.customers.filter((item) =>
+    !query || item.name.toLocaleLowerCase().replace(/\s+/g, " ").includes(query) ||
+    (phoneQuery && /^[\d\s()+.-]+$/.test(query) && String(item.phone || "").replace(/\D/g, "").includes(phoneQuery))
+  );
+  const selectedStats = customer ? customerStats(db, customer.id) : null;
+
+  function chooseCustomer(item) {
+    setC(item.id);
+    setCustomerQuery("");
+    setSearchOpen(false);
+    setSuccess(null);
+    amountRef.current?.focus();
+  }
+
   return (
     <>
       <AdminIntro
         title="Record a purchase"
-        desc="One simple step at the counter. Choose a customer, enter their bill and credit points."
+        desc="Find their account. Add the bill. Make their next visit a little sweeter."
       />
-      <div className="purchase-layout">
+      <div className="purchase-layout purchase-workspace">
         <form
           className="panel purchase-form"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!canSubmit) return;
             if (purchase(c, amount)) {
+              setSuccess({ name: customer.name, amount: Number(amount), points });
               setAmount("");
-              setSuccess(true);
             }
           }}
         >
-          <span className="eyebrow">NEW LOYALTY TRANSACTION</span>
-          <label>Customer</label>
-          <select
-            value={c}
-            onChange={(e) => {
-              setC(e.target.value);
-              setSuccess(false);
-            }}
-          >
-            {db.customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} · {c.phone}
-              </option>
-            ))}
-          </select>
-          <label>Bill amount (₹)</label>
+          <div className="purchase-heading">
+            <span className="purchase-heading-icon"><Receipt size={22} /></span>
+            <div><span className="eyebrow">AT THE COUNTER</span><h2>A little visit. More rewards.</h2></div>
+          </div>
+          <label htmlFor="purchase-customer-search"><span className="purchase-step-number">1</span> Find a customer</label>
+          <div className="purchase-search-row">
+            <div className="purchase-search-input">
+              <Search size={18} aria-hidden="true" />
+              <input
+                ref={searchRef}
+                id="purchase-customer-search"
+                type="search"
+                placeholder="Name or phone number"
+                autoComplete="off"
+                value={customerQuery}
+                aria-describedby="purchase-search-help"
+                aria-controls="purchase-search-results"
+                aria-expanded={searchOpen}
+                onChange={(e) => {
+                  setCustomerQuery(e.target.value);
+                  setSearchOpen(true);
+                  setSuccess(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); setSearchOpen(true); }
+                  if (e.key === "Escape") { e.preventDefault(); setCustomerQuery(""); setSearchOpen(false); }
+                }}
+              />
+            </div>
+            <button className="purchase-search-button" type="button" onClick={() => { setSearchOpen(true); searchRef.current?.focus(); }}>Search</button>
+          </div>
+          <p className="purchase-helper" id="purchase-search-help">Search a full name, part of a name, or phone digits.</p>
+          <div id="purchase-search-results" hidden={!searchOpen} className="purchase-search-results">
+            <div className="purchase-results-heading">
+              <span role="status">{matches.length} {matches.length === 1 ? "customer" : "customers"} found</span>
+              <button type="button" onClick={() => { setSearchOpen(false); setCustomerQuery(""); searchRef.current?.focus(); }}>Close</button>
+            </div>
+            {matches.length ? (
+              <ul aria-label="Matching customers">
+                {matches.map((item) => (
+                  <li key={item.id}>
+                    <button type="button" className="purchase-customer-result" onClick={() => chooseCustomer(item)}>
+                      <span className="purchase-avatar" aria-hidden="true">{item.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
+                      <span className="grow"><strong>{item.name}</strong><small>{item.phone}</small></span>
+                      <span className="purchase-result-action">Select <ChevronRight size={15} /></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="purchase-no-results"><UserRound size={24} /><strong>No matching customers</strong><p>Try a different name or check the phone digits.</p></div>
+            )}
+          </div>
+          {customer && (
+            <div className="purchase-selected">
+              <span className="purchase-avatar" aria-hidden="true"><UserRound size={20} /></span>
+              <div className="grow"><span className="purchase-selected-label">SELECTED CUSTOMER</span><strong>{customer.name}</strong><small>{customer.phone}</small></div>
+              <CheckCircle2 size={19} aria-label="Selected" />
+            </div>
+          )}
+          <label htmlFor="purchase-bill-amount"><span className="purchase-step-number">2</span> Bill amount (₹)</label>
           <div className="currency-input">
             <span>₹</span>
             <input
+              id="purchase-bill-amount"
+              ref={amountRef}
               type="number"
               required
               min="1"
               step="1"
+              inputMode="numeric"
+              aria-describedby="purchase-bill-help"
               placeholder="e.g. 450"
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value);
-                setSuccess(false);
+                setSuccess(null);
               }}
             />
           </div>
+          <p className="purchase-helper" id="purchase-bill-help">Enter the final bill in whole rupees, after payment.</p>
           <div className="calculation">
             <span>Customer earns</span>
             <strong>
               <Coins size={22} />
               {Number.isFinite(points) && points >= 0 ? points : 0} points
             </strong>
-            <small>₹{db.restaurant.earnRate} spent = 1 point</small>
+            <small>₹{earnRate} spent = 1 point</small>
           </div>
-          <button className="button button-yellow full" type="submit">
+          <button className="button button-yellow full purchase-confirm" type="submit" disabled={!canSubmit}>
             <Check size={17} /> Confirm & credit points
           </button>
           {success && (
-            <div className="success-note">
-              <CheckCircle2 size={18} /> Purchase recorded. Points and analytics
-              updated!
+            <div className="success-note purchase-success" role="status">
+              <CheckCircle2 size={22} /><span><strong>Purchase recorded for {success.name}</strong><small>{money(success.amount)} paid · {success.points} points credited. Ready for the next visit.</small></span>
             </div>
           )}
         </form>
-        <div className="panel explainer">
-          <span className="eyebrow">THE SIMPLE FRUZO FLOW</span>
-          <h2>Keep the visit. Keep the customer.</h2>
+        <div className="panel explainer purchase-preview">
+          <span className="eyebrow">A LITTLE THANK-YOU, EVERY VISIT</span>
+          <h2>Every visit counts.</h2>
+          <p className="purchase-preview-intro">A clear preview before you credit their rewards.</p>
+          <div className="purchase-receipt">
+            <div className="purchase-receipt-title"><Receipt size={18} /><strong>Purchase preview</strong></div>
+            <dl>
+              <div><dt>Customer</dt><dd>{customer?.name || "Choose a customer"}</dd></div>
+              <div><dt>Bill total</dt><dd>{validAmount ? money(Number(amount)) : "—"}</dd></div>
+              <div className="purchase-receipt-total"><dt>Points to credit</dt><dd>{validAmount ? points : 0}<span> pts</span></dd></div>
+            </dl>
+            <div className="purchase-account-stats"><span><strong>{selectedStats?.points ?? "—"}</strong> current points</span><span><strong>{selectedStats?.visits ?? "—"}</strong> visits so far</span></div>
+          </div>
           {[
             [
               "1",
               "Find the customer",
-              "Search by name and choose their loyalty account.",
+              "Search by name or phone and select their account.",
             ],
             [
               "2",

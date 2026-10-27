@@ -1,0 +1,92 @@
+.fruzo-quick-actions {
+  --radial-radius: clamp(108px, 32vw, 136px);
+  position: fixed;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  width: 64px;
+  height: 64px;
+  z-index: 47;
+}
+.fruzo-quick-trigger {
+  position: relative;
+  z-index: 2;
+  border: 1px solid #e8c718;
+  box-shadow: 0 8px 28px rgba(28, 27, 22, .22), 0 2px 6px #0001;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.fruzo-quick-trigger svg {
+  transition: transform 400ms cubic-bezier(.22, 1, .36, 1);
+}
+.is-open .fruzo-quick-trigger svg { transform: rotate(45deg); }
+.fruzo-radial-actions { position: absolute; inset: 0; pointer-events: none; }
+.fruzo-radial-position {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(0, 0) scale(.4);
+  transition: transform 400ms cubic-bezier(.22, 1, .36, 1), opacity 250ms ease, visibility 0s linear 400ms;
+}
+.is-open .fruzo-radial-position {
+  transform: translate(calc(var(--radial-radius) * var(--radial-x)), calc(var(--radial-radius) * var(--radial-y))) scale(1);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: var(--action-delay), var(--action-delay), 0s;
+}
+.fruzo-radial-action {
+  border: 1px solid rgba(28, 27, 22, .08);
+  box-shadow: 0 6px 20px #0003, 0 1px 3px #0002;
+  transition: transform 200ms cubic-bezier(.22, 1, .36, 1), box-shadow 200ms ease;
+}
+.is-open .fruzo-radial-action { pointer-events: auto; }
+.fruzo-radial-action:disabled { opacity: .55; }
+.fruzo-radial-action:focus-visible, .fruzo-quick-trigger:focus-visible {
+  outline: 3px solid #c6a51a;
+  outline-offset: 4px;
+}
+.fruzo-radial-label {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: -6px;
+  width: max-content;
+  max-width: 175px;
+  border: 1px solid var(--fruzo-line, #e9e7df);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: var(--fruzo-surface, #fff);
+  color: var(--fruzo-text, #1c1b16);
+  box-shadow: 0 4px 14px #0002;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms;
+  pointer-events: none;
+}
+.fruzo-radial-position:first-child .fruzo-radial-label { right: auto; left: -6px; }
+.fruzo-radial-position:focus-within .fruzo-radial-label {
+  visibility: visible; opacity: 1; transform: translateY(0);
+}
+@media (hover: hover) {
+  .fruzo-quick-trigger:hover { transform: scale(1.05); box-shadow: 0 10px 34px #0004; }
+  .fruzo-radial-action:not(:disabled):hover { transform: scale(1.1); box-shadow: 0 9px 24px #0004; }
+  .is-open .fruzo-radial-position:hover .fruzo-radial-label { visibility: visible; opacity: 1; transform: translateY(0); }
+}
+.fruzo-quick-trigger:active { transform: scale(.96); }
+.fruzo-radial-action:not(:disabled):active { transform: scale(.94); }
+@media (max-width: 640px) {
+  .fruzo-quick-actions {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-height: 480px) { .fruzo-quick-actions { --radial-radius: 108px; } }
+@media (prefers-reduced-motion: reduce) {
+  .fruzo-quick-actions *, .fruzo-quick-trigger svg { transition: none; }
+}

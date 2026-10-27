@@ -1,0 +1,60 @@
+:root {
+  color-scheme: light;
+  --fruzo-bg: #fff;
+  --fruzo-surface: #fff;
+  --fruzo-raised: #faf9f5;
+  --fruzo-text: #1c1b16;
+  --fruzo-muted: #77776e;
+  --fruzo-line: #e9e7df;
+  --fruzo-soft: #fff7cc;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fruzo-bg: #141512;
+  --fruzo-surface: #20211c;
+  --fruzo-raised: #292a23;
+  --fruzo-text: #f4f1e5;
+  --fruzo-muted: #b7b5a7;
+  --fruzo-line: #3b3d32;
+  --fruzo-soft: #36311b;
+  background: var(--fruzo-bg);
+  color: var(--fruzo-text);
+}
+body, .app { background: var(--fruzo-bg); color: var(--fruzo-text); }
+.theme-toggle {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 38px; height: 38px; border: 1px solid var(--fruzo-line);
+  border-radius: 50%; background: var(--fruzo-raised); color: var(--fruzo-text);
+  transition: background 180ms ease, transform 180ms ease, border-color 180ms ease;
+}
+.theme-toggle:hover { border-color: #c5a628; background: var(--fruzo-soft); transform: rotate(-12deg); }
+.theme-toggle:active { transform: scale(.94); }
+.theme-toggle:focus-visible { outline: 2px solid #c5a628; outline-offset: 3px; }
+@media (max-width: 760px) { .header-tools { gap: 6px; } }
+/* Warm charcoal surfaces retain Fruzo's yellow brand accents. */
+:root[data-theme="dark"] .app { --border: var(--fruzo-line); --muted: var(--fruzo-muted); }
+:root[data-theme="dark"] :is(.customer-header, .admin-header, .sidebar, .bottom-nav, .panel, .metric, .cat-tile, .food-card, .reward-card, .selector-card, .modal, .search-box, .search-home, .profile-links, .two-mini-stats > div, .profile-stats, .notification-detail) {
+  background: var(--fruzo-surface); color: var(--fruzo-text); border-color: var(--fruzo-line);
+}
+:root[data-theme="dark"] :is(.customer-footer, .table-head, .explainer-foot, .modal-mini-stats > div, .purchase-results-heading, .purchase-customer-result, .currency-input span) { background: var(--fruzo-raised); color: var(--fruzo-text); }
+:root[data-theme="dark"] :is(.compact-wallet, .calculation, .purchase-selected, .purchase-receipt, .purchase-success, .action-card, .overview-note, .insight-strips > div) { background: var(--fruzo-soft); color: var(--fruzo-text); border-color: var(--fruzo-line); }
+:root[data-theme="dark"] :is(.logo-word, .food-body, .reward-body, .purchase-account-stats strong, .purchase-search-input input, .purchase-results-heading button, .purchase-customer-result, .text-link, .small-text-link, .icon-button, .profile-links button, .more-nav button) { color: var(--fruzo-text); }
+:root[data-theme="dark"] :is(p, .muted, .metric-label, .metric small, .side-caption, .side-admin small, .admin-eyebrow, .desktop-nav button, .side-link, .bottom-nav button, .customer-name small, .activity small, .transaction small, .item-count, .table-head, .light-type, .purchase-helper, .purchase-selected small, .purchase-customer-result small, .purchase-receipt dt, .purchase-success small, .purchase-result-action, .purchase-selected-label, .purchase-account-stats, .calculation span, .calculation small) { color: var(--fruzo-muted); }
+:root[data-theme="dark"] :is(input, textarea, select) { color: var(--fruzo-text); background-color: var(--fruzo-raised); border-color: var(--fruzo-line); }
+:root[data-theme="dark"] :is(input, textarea)::placeholder { color: #a4a294; }
+:root[data-theme="dark"] :is(.currency-input, .purchase-search-input, .purchase-search-results, .table-record, .transaction, .activity, .message-row, .admin-menu-row, .profile-links button, .sidebar-bottom, .purchase-receipt-total, .purchase-account-stats) { border-color: var(--fruzo-line); }
+:root[data-theme="dark"] :is(.desktop-nav button.active, .desktop-nav button:hover, .side-link.selected, .side-link:hover, .bottom-nav button.active, .chip, .icon-button:hover, .cat-tile:hover, .purchase-customer-result:hover, .outline-mini:hover) { background: var(--fruzo-soft); color: #ffdc16; border-color: var(--fruzo-line); }
+:root[data-theme="dark"] :is(.outline-mini, .outline-danger) { color: var(--fruzo-text); border-color: var(--fruzo-line); background: var(--fruzo-raised); }
+:root[data-theme="dark"] :is(.eyebrow, .points-label, .search-hint, .home-welcome h1 em) { color: #e7c952; }
+:root[data-theme="dark"] :is(.wallet-icon, .avatar, .admin-avatar, .purchase-heading-icon, .purchase-avatar, .purchase-step-number, .step > span, .list-avatar, .metric-icon, .transaction-icon, .activity-icon) { color: #1c1b16; }
+:root[data-theme="dark"] :is(.hero, .yellow-promo, .rewards-hero, .wallet-hero, .offer-card) { color: #1c1b16; }
+:root[data-theme="dark"] :is(.hero, .yellow-promo, .rewards-hero, .wallet-hero) p { color: #514710; }
+:root[data-theme="dark"] .interactive-card p { color: inherit; }
+:root[data-theme="dark"] .purchase-workspace :is(button, input):focus-visible { outline-color: #ffdc16; }
+:root[data-theme="dark"] .selector-card :is(p, small) { color: var(--fruzo-muted) !important; }
+:root[data-theme="dark"] :is(.profile-links button, .more-nav button, .offer-card) { background: var(--fruzo-surface); color: var(--fruzo-text); border-color: var(--fruzo-line); }
+:root[data-theme="dark"] :is(.food-tag, .round-add, .chip.chosen) { color: #1c1b16; }
+:root[data-theme="dark"] .chip.chosen { background: #ffdc16; border-color: #ffdc16; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; animation: none; }
+}
